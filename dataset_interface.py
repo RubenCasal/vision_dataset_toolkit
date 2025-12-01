@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
+from typing import Optional
 
 
 @dataclass
@@ -31,7 +32,6 @@ class Annotation:
     image_id: int
     category_id: int
     bbox: BBox
-    area: float
     iscrowd: int = 0
     segmentation: Optional[list[float]] = None
     area: Optional[float] = None
