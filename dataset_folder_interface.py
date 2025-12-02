@@ -1,5 +1,6 @@
-from load_datasets import load_yolo_dataset
+from load_functions import load_yolo_dataset
 from pathlib import Path
+from typing import Optional
 from dataset_interface import DatasetIR
 from dataclasses import dataclass
 
@@ -16,15 +17,17 @@ def get_loader(dataset_type: str):
 class DatasetFolder:
 
     def __init__(
-        self, path: str, dataset_type: str, folders=["train", "test", "valid"]
+        self, path: str, dataset_type: str, folders=("train", "test", "valid")
     ):
 
         base = Path(path)
         loader = get_loader(dataset_type=dataset_type)
 
-        self.train = None
-        self.test = None
-        self.valid = None
+        self.train: Optional[DatasetIR] = None
+        self.test: Optional[DatasetIR] = None
+        self.valid: Optional[DatasetIR] = None
+
+        self.split_dirs: dict[str, Path] = {}
 
         for folder in folders:
             split_dir = base / folder
@@ -34,9 +37,11 @@ class DatasetFolder:
                 continue
             try:
                 ds = loader(str(split_dir))
-            except FileNotFoundError:
+            except FileNotFoundError as e:
                 print(f"[WARN] Error cargando split '{folder}' en {split_dir}: {e}")
                 continue
+
+            self.split_dirs[folder] = split_dir
 
             if folder == "train":
                 self.train = ds
