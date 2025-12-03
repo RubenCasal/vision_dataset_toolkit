@@ -2,6 +2,7 @@ from dataset_interface import DatasetIR, Image, Annotation, Category, BBox
 from pathlib import Path
 from typing import List
 from PIL import Image as PILImage
+import json
 
 
 def load_yolo_dataset(root: str) -> DatasetIR:
@@ -65,4 +66,71 @@ def load_yolo_dataset(root: str) -> DatasetIR:
         images=images,
         annotations=annotations,
         categories=list(categories_map.values()),
+    )
+
+
+def load_coco_dataset(split_root: str) -> DatasetIR:
+
+    split_dir = Path(split_root)
+    if not split_dir.exists():
+        raise FileNotFoundError(f"Split dir not found: {split_dir}")
+
+    ann_path = split_dir / "_annotations.coco.json"
+    if not ann_path.exists():
+        raise FileNotFoundError(f"COCO annotations JSON not found at: {ann_path}")
+
+    print(f"[INFO] Using COCO annotations: {ann_path}")
+
+    data = json.loads(ann_path.read_text(encoding="utf-8"))
+
+    images: List[Image] = [
+        Image(
+            id=int(im["id"]),
+            file_name=im["file_name"],
+            width=int(im["width"]),
+            height=int(im["height"]),
+        )
+        for im in data["images"]
+    ]
+
+    categories: List[Category] = [
+        Category(
+            id=int(c["id"]),
+            name=c["name"],
+            supercategory=c.get("supercategory"),
+        )
+        for c in data["categories"]
+    ]
+
+    annotations: List[Annotation] = []
+    for a in data["annotations"]:
+        x, y, w, h = a["bbox"]
+        area = a.get("area", w * h)
+
+        seg = a.get("segmentation")
+        flat_seg = None
+        if isinstance(seg, list) and seg:
+            if isinstance(seg[0], list):
+                flat_seg = seg[0]
+            else:
+                flat_seg = seg
+
+        annotations.append(
+            Annotation(
+                id=int(a["id"]),
+                image_id=int(a["image_id"]),
+                category_id=int(a["category_id"]),
+                bbox=BBox(x=float(x), y=float(y), width=float(w), height=float(h)),
+                area=float(area),
+                iscrowd=int(a.get("iscrowd", 0)),
+                segmentation=flat_seg,
+                keypoints=a.get("keypoints"),
+                num_keypoints=a.get("num_keypoints"),
+            )
+        )
+
+    return DatasetIR(
+        images=images,
+        annotations=annotations,
+        categories=categories,
     )
