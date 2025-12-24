@@ -1,1 +1,5 @@
 pruebas.py
+__pycache__/*
+dataset_yolo_pruebas/*
+dataset_coco/*
+dataset_coco/*
