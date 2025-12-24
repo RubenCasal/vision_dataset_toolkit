@@ -1,4 +1,8 @@
-from utilities.load_functions import load_yolo_dataset, load_coco_estandar_dataset
+from utilities.load_functions import (
+    load_yolo_dataset,
+    load_coco_estandar_dataset,
+    load_coco_json_dataset,
+)
 from pathlib import Path
 from typing import Optional
 from utilities.dataset_interface import DatasetIR
@@ -10,6 +14,8 @@ def get_loader(dataset_type: str):
         return load_yolo_dataset
     elif dataset_type == "coco":
         return load_coco_estandar_dataset
+    elif dataset_type == "coco_json":
+        return load_coco_json_dataset
     else:
         raise ValueError(f"Unsupported dataset_type={dataset_type!r}")
 
