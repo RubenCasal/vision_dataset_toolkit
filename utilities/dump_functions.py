@@ -264,3 +264,92 @@ def dump_coco_estandar_dataset(
             images_source_dir=src_images_dir,
             ann_path=ann_path,
         )
+
+
+######### COCO JSON (tipo Roboflow) DUMPING FUNCTIONS #########
+
+
+def dump_coco_json_split(
+    dataset: DatasetIR,
+    out_split_root: str | Path,
+    images_source_dir: Path,
+    coco_filename: str = "_annotations.coco.json",
+) -> None:
+
+    out_split_root = Path(out_split_root)
+    out_split_root.mkdir(parents=True, exist_ok=True)
+
+    images_source_dir = Path(images_source_dir)
+    if (
+        not any(images_source_dir.glob("*.*"))
+        and (images_source_dir / "images").exists()
+    ):
+        images_source_dir = images_source_dir / "images"
+
+    for im in dataset.images:
+        src_img = images_source_dir / im.file_name
+        dst_img = out_split_root / im.file_name
+
+        if src_img.exists():
+            if src_img.resolve() != dst_img.resolve():
+                shutil.copy2(src_img, dst_img)
+
+    coco_dict = _dataset_ir_to_coco_dict(dataset)
+
+    ann_path = out_split_root / coco_filename
+    ann_path.write_text(json.dumps(coco_dict, indent=2), encoding="utf-8")
+
+
+def dump_coco_json_dataset(
+    dataset: DatasetFolder,
+    output_path: str | Path,
+    coco_filename: str = "_annotations.coco.json",
+) -> None:
+
+    out_base = Path(output_path)
+    out_base.mkdir(parents=True, exist_ok=True)
+
+    # TRAIN
+    if dataset.train is not None and "train" in dataset.split_dirs:
+        split_dir = dataset.split_dirs["train"]
+        # puede ser split_dir o split_dir/images
+        images_source_dir = split_dir
+        if (split_dir / "images").exists():
+            images_source_dir = split_dir / "images"
+
+        dump_coco_json_split(
+            dataset.train,
+            out_split_root=out_base / "train",
+            images_source_dir=images_source_dir,
+            coco_filename=coco_filename,
+        )
+
+    # VALID / VAL → salida siempre "val"
+    if dataset.valid is not None:
+        src_key = "valid" if "valid" in dataset.split_dirs else "val"
+        if src_key in dataset.split_dirs:
+            split_dir = dataset.split_dirs[src_key]
+            images_source_dir = split_dir
+            if (split_dir / "images").exists():
+                images_source_dir = split_dir / "images"
+
+            dump_coco_json_split(
+                dataset.valid,
+                out_split_root=out_base / "val",
+                images_source_dir=images_source_dir,
+                coco_filename=coco_filename,
+            )
+
+    # TEST
+    if dataset.test is not None and "test" in dataset.split_dirs:
+        split_dir = dataset.split_dirs["test"]
+        images_source_dir = split_dir
+        if (split_dir / "images").exists():
+            images_source_dir = split_dir / "images"
+
+        dump_coco_json_split(
+            dataset.test,
+            out_split_root=out_base / "test",
+            images_source_dir=images_source_dir,
+            coco_filename=coco_filename,
+        )

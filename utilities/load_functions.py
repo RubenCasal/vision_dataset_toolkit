@@ -97,7 +97,6 @@ def load_coco_estandar_dataset(split_root: str) -> DatasetIR:
     if not ann_dir.exists():
         raise FileNotFoundError(f"Annotations folder not found: {ann_dir}")
 
-    # candidatos típicos de COCO
     candidate_names = [
         f"instances_{split_name}.json",
         f"instances_{split_name}2017.json",
@@ -147,7 +146,87 @@ def load_coco_estandar_dataset(split_root: str) -> DatasetIR:
         seg = a.get("segmentation")
         flat_seg = None
         if isinstance(seg, list) and seg:
-            # puede ser [x1,y1,...] o [[x1,y1,...], ...]
+            if isinstance(seg[0], list):
+                flat_seg = seg[0]
+            else:
+                flat_seg = seg
+
+        annotations.append(
+            Annotation(
+                id=int(a["id"]),
+                image_id=int(a["image_id"]),
+                category_id=int(a["category_id"]),
+                bbox=BBox(x=float(x), y=float(y), width=float(w), height=float(h)),
+                area=float(area),
+                iscrowd=int(a.get("iscrowd", 0)),
+                segmentation=flat_seg,
+                keypoints=a.get("keypoints"),
+                num_keypoints=a.get("num_keypoints"),
+            )
+        )
+
+    return DatasetIR(
+        images=images,
+        annotations=annotations,
+        categories=categories,
+    )
+
+
+def load_coco_json_dataset(split_root: str) -> DatasetIR:
+
+    split_dir = Path(split_root)
+    if not split_dir.exists():
+        raise FileNotFoundError(f"Split dir not found: {split_dir}")
+
+    candidate_names = [
+        "_annotations.coco.json",
+        "__annotations.coco.json",
+        "annotations.coco.json",
+    ]
+
+    ann_path = None
+    for name in candidate_names:
+        p = split_dir / name
+        if p.exists() and p.is_file():
+            ann_path = p
+            break
+
+    if ann_path is None:
+        raise FileNotFoundError(
+            f"RF-DETR COCO JSON not found in split dir: {split_dir}"
+        )
+
+    print(f"[INFO] Using RF-DETR COCO annotations at: {ann_path}")
+
+    data = json.loads(ann_path.read_text(encoding="utf-8"))
+
+    images: List[Image] = [
+        Image(
+            id=int(im["id"]),
+            file_name=im["file_name"],
+            width=int(im["width"]),
+            height=int(im["height"]),
+        )
+        for im in data["images"]
+    ]
+
+    categories: List[Category] = [
+        Category(
+            id=int(c["id"]),
+            name=c["name"],
+            supercategory=c.get("supercategory"),
+        )
+        for c in data["categories"]
+    ]
+
+    annotations: List[Annotation] = []
+    for a in data["annotations"]:
+        x, y, w, h = a["bbox"]
+        area = a.get("area", w * h)
+
+        seg = a.get("segmentation")
+        flat_seg = None
+        if isinstance(seg, list) and seg:
             if isinstance(seg[0], list):
                 flat_seg = seg[0]
             else:
