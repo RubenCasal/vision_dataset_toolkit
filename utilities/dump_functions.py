@@ -1,8 +1,14 @@
 from pathlib import Path
 from typing import Dict, Optional
 import shutil
-from utilities.dataset_folder_interface import DatasetFolder
-from utilities.dataset_interface import DatasetIR, Image, Annotation, BBox, Category
+from dataset_formater.utilities.dataset_folder_interface import DatasetFolder
+from dataset_formater.utilities.dataset_interface import (
+    DatasetIR,
+    Image,
+    Annotation,
+    BBox,
+    Category,
+)
 import json
 
 

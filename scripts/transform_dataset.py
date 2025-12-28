@@ -1,6 +1,6 @@
 import argparse
-from utilities.dataset_folder_interface import DatasetFolder
-from utilities.dump_functions import (
+from dataset_formater.utilities.dataset_folder_interface import DatasetFolder
+from dataset_formater.utilities.dump_functions import (
     dump_yolo_dataset,
     dump_coco_estandar_dataset,
     dump_coco_json_dataset,

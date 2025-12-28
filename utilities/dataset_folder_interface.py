@@ -1,11 +1,11 @@
-from utilities.load_functions import (
+from dataset_formater.utilities.load_functions import (
     load_yolo_dataset,
     load_coco_estandar_dataset,
     load_coco_json_dataset,
 )
 from pathlib import Path
 from typing import Optional
-from utilities.dataset_interface import DatasetIR
+from dataset_formater.utilities.dataset_interface import DatasetIR
 from dataclasses import dataclass
 
 

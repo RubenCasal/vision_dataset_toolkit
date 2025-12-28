@@ -1,4 +1,10 @@
-from utilities.dataset_interface import DatasetIR, Image, Annotation, Category, BBox
+from dataset_formater.utilities.dataset_interface import (
+    DatasetIR,
+    Image,
+    Annotation,
+    Category,
+    BBox,
+)
 from pathlib import Path
 from typing import List
 from PIL import Image as PILImage
