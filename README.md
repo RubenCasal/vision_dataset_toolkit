@@ -35,14 +35,14 @@ Arguments
 - `--dest_format` (required): Output format: `yolo`, `coco` or `coco_json`.
 
 Example
-
-  python -m dataset_formater.scripts.transform_dataset ^
-    --source_path ./dataset_formater/dataset_yolo11 ^
+```python
+  python -m dataset_formater.scripts.transform_dataset 
+    --source_path ./dataset_formater/dataset_yolo11 
     --source_format yolo ^
-    --dest_path ./dataset_formater/dataset_coco_json ^
+    --dest_path ./dataset_formater/dataset_coco_json 
     --dest_format coco_json
+```
 
-(On Linux/macOS replace `^` by `\` for multiline commands.)
 
 ---
 
@@ -60,14 +60,14 @@ Arguments
 - `--max_images` (optional): Max images per split to visualize (`-1` = all).
 
 Example
-
-  python -m dataset_formater.scripts.preview_dataset ^
-    --dataset_path ./dataset_formater/dataset_yolo11 ^
-    --dataset_format yolo ^
-    --output_root ./dataset_formater/preview_yolo11 ^
-    --blur_radius 3.0 ^
+```python
+  python -m dataset_formater.scripts.preview_dataset 
+    --dataset_path ./dataset_formater/dataset_yolo11 
+    --dataset_format yolo 
+    --output_root ./dataset_formater/preview_yolo11 
+    --blur_radius 3.0 
     --max_images 200
-
+```
 ---
 
 ### `match_preview_folder.py`
@@ -83,13 +83,13 @@ Arguments
 - `--output_path` (optional): Output path for the pruned dataset; if empty, uses `<dataset_root>_pruned`.
 
 Example
-
-  python -m dataset_formater.scripts.match_preview_folder ^
-    --dataset_path ./dataset_formater/dataset_yolo11 ^
-    --dataset_format yolo ^
-    --preview_root ./dataset_formater/preview_yolo11 ^
+```python
+  python -m dataset_formater.scripts.match_preview_folder 
+    --dataset_path ./dataset_formater/dataset_yolo11 
+    --dataset_format yolo 
+    --preview_root ./dataset_formater/preview_yolo11 
     --output_path ./dataset_formater/dataset_yolo11_pruned
-
+```
 ---
 
 ### `get_dataset_report.py`
@@ -105,13 +105,13 @@ Arguments
 - `--plots_dirname` (optional): Subdirectory inside dataset root to store auxiliary plots.
 
 Example
-
-  python -m dataset_formater.scripts.get_dataset_report ^
-    --dataset_path ./dataset_formater/dataset_yolo11 ^
-    --dataset_format yolo ^
-    --report_filename report_dataset_yolo11.pdf ^
+```python
+  python -m dataset_formater.scripts.get_dataset_report 
+    --dataset_path ./dataset_formater/dataset_yolo11 
+    --dataset_format yolo 
+    --report_filename report_dataset_yolo11.pdf 
     --plots_dirname report_plots
-
+```
 ---
 
 ### `get_subset_dataset.py`
@@ -127,13 +127,13 @@ Arguments
 - `--output_path` (optional): Output dataset root; if empty, uses `<dataset_root>_pruned`.
 
 Example
-
-  python -m dataset_formater.scripts.get_subset_dataset ^
-    --dataset_path ./dataset_formater/dataset_yolo11 ^
-    --dataset_format yolo ^
-    --keep_percentage 0.2 ^
+```python
+  python -m dataset_formater.scripts.get_subset_dataset 
+    --dataset_path ./dataset_formater/dataset_yolo11 
+    --dataset_format yolo 
+    --keep_percentage 0.2 
     --output_path ./dataset_formater/dataset_yolo11_subset_20
-
+```
 ---
 
 ### `remap_labels_dataset.py`
@@ -151,13 +151,13 @@ Arguments
 Note: The class mapping `ID_MAP` (old_id -> new_id or `None` to drop) is edited directly in the script.
 
 Example
-
-  python -m dataset_formater.scripts.remap_labels_dataset ^
-    --source_path ./dataset_formater/dataset_yolo11 ^
-    --source_format yolo ^
-    --dest_path ./dataset_formater/dataset_yolo11_remapped ^
+```python
+  python -m dataset_formater.scripts.remap_labels_dataset 
+    --source_path ./dataset_formater/dataset_yolo11 
+    --source_format yolo 
+    --dest_path ./dataset_formater/dataset_yolo11_remapped 
     --dest_format yolo
-
+```
 ---
 
 ### `transform2segmentation.py`
@@ -180,14 +180,13 @@ Arguments
 - `--no_recompute_bbox` (optional flag): If set, keep original bbox instead of recomputing it from the mask.
 
 Example
-
-  python -m dataset_formater.scripts.transform2segmentation ^
-    --dataset_path ./dataset_formater/dataset_yolo11 ^
-    --dataset_format yolo ^
-    --dest_path ./dataset_formater/dataset_segmented_coco ^
-    --dest_format coco_json ^
-    --sam_checkpoint dataset_formater/sam_checkpoints/sam_vit_l_0b3195.pth ^
-    --sam_model_type vit_l ^
-    --sam_device cuda ^
-    --score_threshold 0.0 ^
-    --box_expansion_ratio 0.0
+```python
+  python -m dataset_formater.scripts.transform2segmentation 
+    --dataset_path ./dataset_formater/dataset_yolo11 
+    --dataset_format yolo 
+    --dest_path ./dataset_formater/dataset_segmented_coco 
+    --dest_format coco_json 
+    --sam_checkpoint dataset_formater/sam_checkpoints/sam_vit_l_0b3195.pth 
+    --sam_model_type vit_l 
+  
+```
