@@ -24,21 +24,21 @@ The goal is to centralize typical dataset housekeeping tasks in a single, consis
 
 ### `transform_dataset.py`
 
-Description  
+**Description**  
 Convert a dataset between `yolo`, `coco` and `coco_json` formats, preserving the `train` / `val` / `test` split structure.
 
-Arguments
+**Arguments**
 
 - `--source_path` (required): Path to the source dataset root folder.
 - `--source_format` (required): Source format: `yolo`, `coco` or `coco_json`.
 - `--dest_path` (required): Path where the converted dataset will be saved.
 - `--dest_format` (required): Output format: `yolo`, `coco` or `coco_json`.
 
-Example
-```python
-  python -m dataset_formater.scripts.transform_dataset 
+**Example**
+```
+  transform_dataset 
     --source_path ./dataset_formater/dataset_yolo11 
-    --source_format yolo ^
+    --source_format yolo 
     --dest_path ./dataset_formater/dataset_coco_json 
     --dest_format coco_json
 ```
@@ -48,10 +48,10 @@ Example
 
 ### `preview_dataset.py`
 
-Description  
+**Description**  
 Generate visual previews of dataset annotations (YOLO / COCO / COCO JSON) by drawing boxes or masks over images for each split, with optional blur and max-image cap.
 
-Arguments
+**Arguments**
 
 - `--dataset_path` (required): Path to the dataset root folder.
 - `--dataset_format` (required): Dataset format: `yolo`, `coco` or `coco_json`.
@@ -59,9 +59,9 @@ Arguments
 - `--blur_radius` (optional): Gaussian blur radius applied to annotation overlays.
 - `--max_images` (optional): Max images per split to visualize (`-1` = all).
 
-Example
-```python
-  python -m dataset_formater.scripts.preview_dataset 
+**Example**
+```
+ preview_dataset 
     --dataset_path ./dataset_formater/dataset_yolo11 
     --dataset_format yolo 
     --output_root ./dataset_formater/preview_yolo11 
@@ -72,19 +72,19 @@ Example
 
 ### `match_preview_folder.py`
 
-Description  
+**Description**  
 Prune a dataset by matching it to a preview folder: only images that remain in the preview are preserved in the final dataset, after an interactive confirmation (`yes` is required before deletion).
 
-Arguments
+**Arguments**
 
 - `--dataset_path` (required): Path to the original dataset root folder.
 - `--dataset_format` (required): Dataset format: `yolo`, `coco` or `coco_json`.
 - `--preview_root` (optional): Base preview folder; if empty, uses `<dataset_root>/preview/<split>`.
 - `--output_path` (optional): Output path for the pruned dataset; if empty, uses `<dataset_root>_pruned`.
 
-Example
-```python
-  python -m dataset_formater.scripts.match_preview_folder 
+**Example**
+```
+ match_preview_folder 
     --dataset_path ./dataset_formater/dataset_yolo11 
     --dataset_format yolo 
     --preview_root ./dataset_formater/preview_yolo11 
@@ -94,19 +94,19 @@ Example
 
 ### `get_dataset_report.py`
 
-Description  
+**Description**  
 Generate a PDF report with global statistics for a dataset (YOLO / COCO / COCO JSON), including per-split stats, category distribution and resolution/bbox plots.
 
-Arguments
+**Arguments**
 
 - `--dataset_path` (required): Path to the dataset root folder (parent of `train`, `val`, `test`).
 - `--dataset_format` (required): Dataset format: `yolo`, `coco` or `coco_json`.
 - `--report_filename` (optional): Output PDF filename (default: `report_dataset.pdf`).
 - `--plots_dirname` (optional): Subdirectory inside dataset root to store auxiliary plots.
 
-Example
-```python
-  python -m dataset_formater.scripts.get_dataset_report 
+**Example**
+```
+ get_dataset_report 
     --dataset_path ./dataset_formater/dataset_yolo11 
     --dataset_format yolo 
     --report_filename report_dataset_yolo11.pdf 
@@ -116,19 +116,19 @@ Example
 
 ### `get_subset_dataset.py`
 
-Description  
+**Description** 
 Create a random subset of a dataset (YOLO / COCO / COCO JSON), keeping a given fraction of images per split while preserving format and structure.
 
-Arguments
+**Arguments**
 
 - `--dataset_path` (required): Path to the dataset root folder.
 - `--dataset_format` (required): Dataset format: `yolo`, `coco` or `coco_json`.
 - `--keep_percentage` (required): Fraction of images to keep in each split, in `[0, 1]`.
 - `--output_path` (optional): Output dataset root; if empty, uses `<dataset_root>_pruned`.
 
-Example
-```python
-  python -m dataset_formater.scripts.get_subset_dataset 
+**Example**
+```
+ get_subset_dataset 
     --dataset_path ./dataset_formater/dataset_yolo11 
     --dataset_format yolo 
     --keep_percentage 0.2 
@@ -138,10 +138,10 @@ Example
 
 ### `remap_labels_dataset.py`
 
-Description  
+**Description**  
 Remap, merge or drop classes in a dataset (YOLO / COCO / COCO JSON) according to an `ID_MAP` defined inside the script, and export the result to a chosen format.
 
-Arguments
+**Arguments**
 
 - `--source_path` (required): Path to the source dataset root folder.
 - `--source_format` (required): Source format: `yolo`, `coco` or `coco_json`.
@@ -150,9 +150,9 @@ Arguments
 
 Note: The class mapping `ID_MAP` (old_id -> new_id or `None` to drop) is edited directly in the script.
 
-Example
-```python
-  python -m dataset_formater.scripts.remap_labels_dataset 
+**Example**
+```
+  remap_labels_dataset 
     --source_path ./dataset_formater/dataset_yolo11 
     --source_format yolo 
     --dest_path ./dataset_formater/dataset_yolo11_remapped 
@@ -162,10 +162,10 @@ Example
 
 ### `transform2segmentation.py`
 
-Description  
+**Description**  
 Convert a detection dataset with bounding boxes (YOLO / COCO / COCO JSON) into an instance segmentation dataset by generating masks per box using Segment Anything (SAM).
 
-Arguments
+**Arguments**
 
 - `--dataset_path` (required): Path to the dataset root folder.
 - `--dataset_format` (required): Input format: `yolo`, `coco` or `coco_json`.
@@ -179,9 +179,9 @@ Arguments
 - `--overwrite_existing` (optional flag): If set, overwrite annotations that already have segmentation.
 - `--no_recompute_bbox` (optional flag): If set, keep original bbox instead of recomputing it from the mask.
 
-Example
-```python
-  python -m dataset_formater.scripts.transform2segmentation 
+**Example**
+```
+  transform2segmentation 
     --dataset_path ./dataset_formater/dataset_yolo11 
     --dataset_format yolo 
     --dest_path ./dataset_formater/dataset_segmented_coco 
