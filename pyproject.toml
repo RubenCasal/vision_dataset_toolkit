@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dataset_formater"
+version = "0.1.0"
+description = "Una herramienta profesional para formateo de datasets"
+dependencies = [
+    # "numpy", "opencv-python", etc (añade las que uses)
+]
+
+[project.scripts]
+# Esto crea un comando directo en la terminal
+get_subset_dataset = "dataset_formater.scripts.get_subset_dataset:main"

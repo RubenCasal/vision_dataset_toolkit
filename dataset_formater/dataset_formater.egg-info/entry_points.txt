@@ -1,0 +1,2 @@
+[console_scripts]
+get_subset_dataset = scripts.get_subset_dataset:main
