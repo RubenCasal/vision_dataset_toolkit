@@ -1,6 +1,8 @@
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 import shutil
+import json
+
 from dataset_formater.utilities.dataset_folder_interface import DatasetFolder
 from dataset_formater.utilities.dataset_interface import (
     DatasetIR,
@@ -9,7 +11,6 @@ from dataset_formater.utilities.dataset_interface import (
     BBox,
     Category,
 )
-import json
 
 
 def select_dump_function(fmt: str):
@@ -23,10 +24,37 @@ def select_dump_function(fmt: str):
         raise ValueError(f"Unsupported dest_format={fmt!r}")
 
 
+def _guess_images_dir(split_dir: Path) -> Path:
+    """
+    Given a split root (e.g. .../train or .../train/images),
+    return the directory that actually contains the image files.
+
+    Priority:
+      1) split_dir/images if exists and has files
+      2) split_dir itself if it has image files
+      3) fall back to split_dir/images (even if empty)
+    """
+    split_dir = Path(split_dir)
+    cand_images = split_dir / "images"
+
+    # 1) .../split/images exists and non-empty -> use it
+    if cand_images.exists() and any(cand_images.glob("*.*")):
+        return cand_images
+
+    # 2) split_dir itself has files -> use split_dir
+    if split_dir.exists() and any(split_dir.glob("*.*")):
+        return split_dir
+
+    # 3) fallback
+    return cand_images
+
+
 ######### YOLO DUMPING FUNCTIONS #########
+
+
 def dump_yolo_split(
     dataset: DatasetIR,
-    out_split_root: str,
+    out_split_root: str | Path,
     images_source_dir: Path,
 ):
     out_root_path = Path(out_split_root)
@@ -71,34 +99,43 @@ def dump_yolo_split(
 
         src_img = images_source_dir / image.file_name
         if src_img.exists():
-            shutil.copy2(src_img, images_dir / image.file_name)
+            dst_img = images_dir / image.file_name
+            if src_img.resolve() != dst_img.resolve():
+                shutil.copy2(src_img, dst_img)
 
 
 def dump_yolo_dataset(
     dataset: DatasetFolder,
-    output_path: str,
+    output_path: str | Path,
 ):
     out_base = Path(output_path)
+
+    # TRAIN
     if dataset.train is not None and "train" in dataset.split_dirs:
-        src_images_dir = dataset.split_dirs["train"] / "images"
+        split_dir = dataset.split_dirs["train"]
+        src_images_dir = _guess_images_dir(split_dir)
         dump_yolo_split(
             dataset.train,
             out_split_root=out_base / "train",
             images_source_dir=src_images_dir,
         )
 
+    # VAL / VALID
     if dataset.valid is not None:
         src_key = "valid" if "valid" in dataset.split_dirs else "val"
         if src_key in dataset.split_dirs:
-            src_images_dir = dataset.split_dirs[src_key] / "images"
+            split_dir = dataset.split_dirs[src_key]
+            src_images_dir = _guess_images_dir(split_dir)
             dump_yolo_split(
                 dataset.valid,
                 out_split_root=out_base / "val",
                 images_source_dir=src_images_dir,
             )
 
+    # TEST
     if dataset.test is not None and "test" in dataset.split_dirs:
-        src_images_dir = dataset.split_dirs["test"] / "images"
+        split_dir = dataset.split_dirs["test"]
+        src_images_dir = _guess_images_dir(split_dir)
         dump_yolo_split(
             dataset.test,
             out_split_root=out_base / "test",
@@ -230,10 +267,6 @@ def dump_coco_estandar_dataset(
           instances_train.json
           instances_val.json
           instances_test.json
-
-    Asume que las imágenes fuente están en:
-      split_dir / "images"
-    (coincide con tu loader coco_estandar y con YOLO → IR → COCO estándar)
     """
     out_base = Path(output_path)
     out_base.mkdir(parents=True, exist_ok=True)
@@ -243,7 +276,8 @@ def dump_coco_estandar_dataset(
 
     # TRAIN
     if dataset.train is not None and "train" in dataset.split_dirs:
-        src_images_dir = dataset.split_dirs["train"] / "images"
+        split_dir = dataset.split_dirs["train"]
+        src_images_dir = _guess_images_dir(split_dir)
         out_images_dir = out_base / "train" / "images"
         ann_path = ann_dir / f"{coco_prefix}_train.json"
 
@@ -258,7 +292,8 @@ def dump_coco_estandar_dataset(
     if dataset.valid is not None:
         src_key = "valid" if "valid" in dataset.split_dirs else "val"
         if src_key in dataset.split_dirs:
-            src_images_dir = dataset.split_dirs[src_key] / "images"
+            split_dir = dataset.split_dirs[src_key]
+            src_images_dir = _guess_images_dir(split_dir)
             out_images_dir = out_base / "val" / "images"
             ann_path = ann_dir / f"{coco_prefix}_val.json"
 
@@ -271,7 +306,8 @@ def dump_coco_estandar_dataset(
 
     # TEST
     if dataset.test is not None and "test" in dataset.split_dirs:
-        src_images_dir = dataset.split_dirs["test"] / "images"
+        split_dir = dataset.split_dirs["test"]
+        src_images_dir = _guess_images_dir(split_dir)
         out_images_dir = out_base / "test" / "images"
         ann_path = ann_dir / f"{coco_prefix}_test.json"
 
@@ -292,17 +328,12 @@ def dump_coco_json_split(
     images_source_dir: Path,
     coco_filename: str = "_annotations.coco.json",
 ) -> None:
-
     out_split_root = Path(out_split_root)
     out_split_root.mkdir(parents=True, exist_ok=True)
 
     images_source_dir = Path(images_source_dir)
-    if (
-        not any(images_source_dir.glob("*.*"))
-        and (images_source_dir / "images").exists()
-    ):
-        images_source_dir = images_source_dir / "images"
 
+    # 1) Copiar imágenes
     for im in dataset.images:
         src_img = images_source_dir / im.file_name
         dst_img = out_split_root / im.file_name
@@ -311,6 +342,7 @@ def dump_coco_json_split(
             if src_img.resolve() != dst_img.resolve():
                 shutil.copy2(src_img, dst_img)
 
+    # 2) Construir JSON COCO
     coco_dict = _dataset_ir_to_coco_dict(dataset)
 
     ann_path = out_split_root / coco_filename
@@ -322,17 +354,13 @@ def dump_coco_json_dataset(
     output_path: str | Path,
     coco_filename: str = "_annotations.coco.json",
 ) -> None:
-
     out_base = Path(output_path)
     out_base.mkdir(parents=True, exist_ok=True)
 
     # TRAIN
     if dataset.train is not None and "train" in dataset.split_dirs:
         split_dir = dataset.split_dirs["train"]
-        # puede ser split_dir o split_dir/images
-        images_source_dir = split_dir
-        if (split_dir / "images").exists():
-            images_source_dir = split_dir / "images"
+        images_source_dir = _guess_images_dir(split_dir)
 
         dump_coco_json_split(
             dataset.train,
@@ -346,9 +374,7 @@ def dump_coco_json_dataset(
         src_key = "valid" if "valid" in dataset.split_dirs else "val"
         if src_key in dataset.split_dirs:
             split_dir = dataset.split_dirs[src_key]
-            images_source_dir = split_dir
-            if (split_dir / "images").exists():
-                images_source_dir = split_dir / "images"
+            images_source_dir = _guess_images_dir(split_dir)
 
             dump_coco_json_split(
                 dataset.valid,
@@ -360,9 +386,7 @@ def dump_coco_json_dataset(
     # TEST
     if dataset.test is not None and "test" in dataset.split_dirs:
         split_dir = dataset.split_dirs["test"]
-        images_source_dir = split_dir
-        if (split_dir / "images").exists():
-            images_source_dir = split_dir / "images"
+        images_source_dir = _guess_images_dir(split_dir)
 
         dump_coco_json_split(
             dataset.test,
