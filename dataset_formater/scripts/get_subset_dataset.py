@@ -52,7 +52,8 @@ def run_subset(
     print(f"Subset dataset saved at: {dest_root}")
 
 
-if __name__ == "__main__":
+def main():
+
     parser = argparse.ArgumentParser(
         description=(
             "Create a random subset of a dataset (YOLO, COCO, COCO JSON), "
@@ -107,3 +108,6 @@ if __name__ == "__main__":
         keep_percentage=keep,
         output_path=args.output_path if args.output_path else None,
     )
+
+if __name__ == "__main__":
+    main()

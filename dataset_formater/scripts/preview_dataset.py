@@ -82,7 +82,7 @@ def run_visualization(
     print("Visualization completed.")
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Visualize dataset annotations (YOLO, COCO, COCO JSON) with blurred overlays."
     )
@@ -144,3 +144,6 @@ if __name__ == "__main__":
         blur_radius=args.blur_radius,
         max_images=max_imgs,
     )
+
+if __name__ == "__main__":
+    main()

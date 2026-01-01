@@ -91,8 +91,7 @@ def run_remap_labels(
 
     print(f"[DONE] Remapped dataset saved in: {Path(dest_path).resolve()}")
 
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description=(
             "Remap dataset labels (merge/remove classes) and export "
@@ -155,3 +154,6 @@ if __name__ == "__main__":
         dest_path=dest_path,
         dest_format=dest_format,
     )
+
+if __name__ == "__main__":
+    main()

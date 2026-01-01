@@ -39,7 +39,7 @@ def run_report(
     print(f"Report generated at: {dataset_root / report_filename}")
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Generate a PDF report for a dataset (YOLO, COCO, COCO JSON)."
     )
@@ -88,3 +88,6 @@ if __name__ == "__main__":
         report_filename=args.report_filename,
         plots_dirname=args.plots_dirname,
     )
+
+if __name__ == "__main__":
+    main()

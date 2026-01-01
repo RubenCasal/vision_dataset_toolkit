@@ -7,9 +7,20 @@ name = "dataset_formater"
 version = "0.1.0"
 description = "Una herramienta profesional para formateo de datasets"
 dependencies = [
-    # "numpy", "opencv-python", etc (añade las que uses)
+    "Pillow",
+    "numpy",
+    "matplotlib",
+    "reportlab",     # <--- Esta es la que te falta ahora
+    "tqdm",          # Probablemente la uses para barras de progreso
+    "opencv-python", # Si haces algo con imágenes es muy probable que la uses
 ]
 
 [project.scripts]
 # Esto crea un comando directo en la terminal
 get_subset_dataset = "dataset_formater.scripts.get_subset_dataset:main"
+preview_dataset = "dataset_formater.scripts.preview_dataset:main"
+match_preview_folder = "dataset_formater.scripts.match_preview_folder:main"
+get_dataset_report = "dataset_formater.scripts.get_dataset_report:main"
+transform_dataset = "dataset_formater.scripts.transform_dataset:main"
+remap_dataset_labels = "dataset_formater.scripts.remap_dataset_labels:main"
+tranform2segmentation = "dataset_formater.scripts.tranform2segmentation:main"

@@ -114,8 +114,7 @@ def run_sam_conversion(
     dumper(ds_folder, str(dest_root))
     print("[SAM] Conversion + save completed.")
 
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description=(
             "Convert a detection dataset (YOLO / COCO / COCO JSON) into a "
@@ -236,3 +235,6 @@ if __name__ == "__main__":
         overwrite_existing=args.overwrite_existing,
         recompute_bbox=not args.no_recompute_bbox,
     )
+
+if __name__ == "__main__":
+    main()

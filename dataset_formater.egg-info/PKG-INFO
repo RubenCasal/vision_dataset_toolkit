@@ -2,3 +2,9 @@ Metadata-Version: 2.4
 Name: dataset_formater
 Version: 0.1.0
 Summary: Una herramienta profesional para formateo de datasets
+Requires-Dist: Pillow
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Requires-Dist: reportlab
+Requires-Dist: tqdm
+Requires-Dist: opencv-python

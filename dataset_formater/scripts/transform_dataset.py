@@ -31,7 +31,7 @@ def transform_dataset(
     print(f"Transformation completed. Dataset saved in {dest_path}")
 
 
-if __name__ == "__main__":
+def main():
 
     parser = argparse.ArgumentParser(
         description="Transform dataset between different formats (YOLO, COCO, COCO JSON)."
@@ -90,3 +90,5 @@ if __name__ == "__main__":
         dest_path=args.dest_path,
         dest_format=args.dest_format,
     )
+if __name__ == "__main__":
+    main()

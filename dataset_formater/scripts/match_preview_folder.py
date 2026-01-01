@@ -60,7 +60,7 @@ def run_prune(
     print(f"[INFO] Pruned dataset written to: {out_path}")
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description=(
             "Prune a dataset (YOLO, COCO, COCO JSON) using the images kept "
@@ -121,3 +121,5 @@ if __name__ == "__main__":
         preview_root=preview_root_arg,
         output_path=output_path_arg,
     )
+if __name__ == "__main__":
+    main()

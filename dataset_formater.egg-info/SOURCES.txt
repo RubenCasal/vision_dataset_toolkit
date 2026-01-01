@@ -5,6 +5,7 @@ dataset_formater.egg-info/PKG-INFO
 dataset_formater.egg-info/SOURCES.txt
 dataset_formater.egg-info/dependency_links.txt
 dataset_formater.egg-info/entry_points.txt
+dataset_formater.egg-info/requires.txt
 dataset_formater.egg-info/top_level.txt
 dataset_formater/scripts/__init__.py
 dataset_formater/scripts/get_dataset_report.py
