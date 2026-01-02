@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
 
 from reportlab.lib.enums import TA_CENTER
 from reportlab.lib import colors
@@ -57,10 +58,18 @@ def _compute_split_stats(ds: DatasetIR) -> Dict:
     bbox_area_ratios: List[float] = []
     bbox_centers: List[Tuple[float, float]] = []
 
+    # segmentation-related stats (per-annotation, no rasterization)
+    mask_area_rel_list: List[float] = []        # mask_area / img_area
+    mask_vertices_list: List[int] = []          # nº vértices del polígono
+    mask_bbox_ratio_list: List[float] = []      # mask_area / bbox_area
+
+    num_seg = 0
+
     for ann in ds.annotations:
         im = img_by_id.get(ann.image_id)
         if im is None or im.width <= 0 or im.height <= 0:
             continue
+
         b = ann.bbox
         img_area = im.width * im.height
         box_area = max(0.0, b.width) * max(0.0, b.height)
@@ -71,7 +80,20 @@ def _compute_split_stats(ds: DatasetIR) -> Dict:
         cy = (b.y + b.height / 2.0) / im.height
         bbox_centers.append((cx, cy))
 
-    num_seg = sum(1 for ann in ds.annotations if ann.segmentation is not None)
+        # --- segmentation-related stats ---
+        if ann.segmentation is not None:
+            num_seg += 1
+            ann_area = getattr(ann, "area", None)
+            if ann_area is not None and img_area > 0:
+                mask_area_rel_list.append(float(ann_area) / float(img_area))
+
+            if ann.segmentation:
+                verts = len(ann.segmentation) // 2
+                if verts > 0:
+                    mask_vertices_list.append(verts)
+
+            if ann_area is not None and box_area > 0:
+                mask_bbox_ratio_list.append(float(ann_area) / float(box_area))
 
     return {
         "num_images": num_images,
@@ -83,6 +105,9 @@ def _compute_split_stats(ds: DatasetIR) -> Dict:
         "bbox_area_ratios": bbox_area_ratios,
         "bbox_centers": bbox_centers,
         "num_seg_annotations": num_seg,
+        "mask_area_rel_list": mask_area_rel_list,
+        "mask_vertices_list": mask_vertices_list,
+        "mask_bbox_ratio_list": mask_bbox_ratio_list,
     }
 
 
@@ -117,11 +142,20 @@ def _aggregate_global_stats(
     all_bbox_centers: List[Tuple[float, float]] = []
     total_seg_annotations = 0
 
+    # global segmentation-annotation stats (no raster)
+    all_mask_area_rel: List[float] = []
+    all_mask_vertices: List[int] = []
+    all_mask_bbox_ratio: List[float] = []
+
     for stats in splits_stats.values():
         all_resolutions.extend(stats["resolutions"])
         all_bbox_area_ratios.extend(stats["bbox_area_ratios"])
         all_bbox_centers.extend(stats["bbox_centers"])
         total_seg_annotations += stats["num_seg_annotations"]
+
+        all_mask_area_rel.extend(stats["mask_area_rel_list"])
+        all_mask_vertices.extend(stats["mask_vertices_list"])
+        all_mask_bbox_ratio.extend(stats["mask_bbox_ratio_list"])
 
     return {
         "total_images": total_images,
@@ -133,6 +167,101 @@ def _aggregate_global_stats(
         "all_bbox_area_ratios": all_bbox_area_ratios,
         "all_bbox_centers": all_bbox_centers,
         "total_seg_annotations": total_seg_annotations,
+        "all_mask_area_rel": all_mask_area_rel,
+        "all_mask_vertices": all_mask_vertices,
+        "all_mask_bbox_ratio": all_mask_bbox_ratio,
+    }
+
+
+def _compute_segmentation_pixel_stats(
+    folder: DatasetFolder,
+    grid_size: int = 50,
+) -> Dict:
+    """
+    Global pixel-level segmentation stats:
+      - total labeled pixels vs total image pixels (coverage)
+      - coverage per image
+      - overlap pixels (pixels belonging to >=2 instances)
+      - number of images with masks / with overlaps
+      - heatmap of labeled pixel density in normalized coordinates
+    """
+    total_image_pixels = 0
+    total_labeled_pixels = 0
+    overlap_pixels = 0
+    coverage_per_image: List[float] = []
+    images_with_masks = 0
+    images_with_overlap = 0
+
+    heatmap = np.zeros((grid_size, grid_size), dtype=np.float64)
+
+    for ds in (folder.train, folder.valid, folder.test):
+        if ds is None:
+            continue
+
+        anns_by_image: Dict[int, List[Annotation]] = {}
+        for ann in ds.annotations:
+            if ann.segmentation is not None and ann.segmentation:
+                anns_by_image.setdefault(ann.image_id, []).append(ann)
+
+        for im in ds.images:
+            seg_anns = anns_by_image.get(im.id, [])
+            if not seg_anns:
+                continue
+
+            h, w = im.height, im.width
+            if h <= 0 or w <= 0:
+                continue
+
+            mask_union = np.zeros((h, w), dtype=np.uint8)
+            mask_count = np.zeros((h, w), dtype=np.uint16)
+
+            for ann in seg_anns:
+                poly_flat = ann.segmentation
+                if not poly_flat or len(poly_flat) < 6:
+                    continue
+                coords = np.array(poly_flat, dtype=np.float32).reshape(-1, 2)
+                coords_int = np.round(coords).astype(np.int32)
+
+                m = np.zeros((h, w), dtype=np.uint8)
+                cv2.fillPoly(m, [coords_int], 1)
+
+                mask_union |= m
+                mask_count = mask_count + m
+
+            labeled = int(mask_union.sum())
+            if labeled == 0:
+                continue
+
+            images_with_masks += 1
+            img_pixels = h * w
+            total_image_pixels += img_pixels
+            total_labeled_pixels += labeled
+
+            coverage_per_image.append(labeled / float(img_pixels))
+
+            ov_mask = mask_count >= 2
+            ov_pixels = int(ov_mask.sum())
+            overlap_pixels += ov_pixels
+            if ov_pixels > 0:
+                images_with_overlap += 1
+
+            # accumulate heatmap in normalized space
+            mask_union_f = mask_union.astype(np.float32)
+            small = cv2.resize(
+                mask_union_f,
+                (grid_size, grid_size),
+                interpolation=cv2.INTER_AREA,
+            )
+            heatmap += small
+
+    return {
+        "total_image_pixels": total_image_pixels,
+        "total_labeled_pixels": total_labeled_pixels,
+        "coverage_per_image": coverage_per_image,
+        "overlap_pixels": overlap_pixels,
+        "images_with_masks": images_with_masks,
+        "images_with_overlap": images_with_overlap,
+        "heatmap": heatmap,
     }
 
 
@@ -217,6 +346,48 @@ def _plot_bbox_centers_heatmap(
     plt.close()
 
 
+def _plot_mask_pixel_heatmap(
+    heatmap: np.ndarray,
+    out_path: Path,
+) -> None:
+    if heatmap is None or heatmap.size == 0 or np.all(heatmap == 0):
+        return
+
+    plt.figure()
+    plt.imshow(
+        heatmap,
+        origin="lower",
+        extent=[0, 1, 0, 1],
+        aspect="equal",
+    )
+    plt.xlabel("Normalized X")
+    plt.ylabel("Normalized Y")
+    plt.title("Labeled pixel density heatmap")
+    plt.colorbar(label="Relative density (aggregated)")
+    plt.tight_layout()
+    plt.savefig(out_path)
+    plt.close()
+
+
+def _plot_mask_coverage_hist(
+    coverage_per_image: List[float],
+    out_path: Path,
+) -> None:
+    if not coverage_per_image:
+        return
+
+    vals = np.clip(np.array(coverage_per_image, dtype=float), 0.0, 1.0)
+
+    plt.figure()
+    plt.hist(vals, bins=30)
+    plt.xlabel("Labeled pixels / image pixels")
+    plt.ylabel("Images")
+    plt.title("Per-image mask coverage")
+    plt.tight_layout()
+    plt.savefig(out_path)
+    plt.close()
+
+
 # ---------------------------------------------------------------------
 #   PDF REPORT
 # ---------------------------------------------------------------------
@@ -234,8 +405,14 @@ def generate_dataset_report_pdf(
       - category table with percentages
       - resolution stats + 2D histogram
       - bbox stats + hist + heatmap
+      - segmentation stats (if masks exist):
+          * pixel coverage
+          * mask size distribution
+          * polygon complexity (vertices)
+          * mask/bbox ratio
+          * overlaps and occlusions
+          * spatial distribution (heatmap of labeled pixels)
       - split-wise annotation stats
-      - segmentation stats section only if the dataset has masks
     """
     dataset_root = Path(dataset_root)
     dataset_name = dataset_root.name
@@ -274,10 +451,14 @@ def generate_dataset_report_pdf(
     all_bbox_centers: List[Tuple[float, float]] = global_stats["all_bbox_centers"]
     total_seg_annotations: int = global_stats["total_seg_annotations"]
 
+    all_mask_area_rel: List[float] = global_stats["all_mask_area_rel"]
+    all_mask_vertices: List[int] = global_stats["all_mask_vertices"]
+    all_mask_bbox_ratio: List[float] = global_stats["all_mask_bbox_ratio"]
+
     has_segmentation = total_seg_annotations > 0
     num_categories = len(all_categories)
 
-    # Generate plots
+    # Generate base plots
     res_plot_path = plots_dir / "resolutions_heatmap.png"
     bbox_hist_path = plots_dir / "bbox_size_hist.png"
     bbox_heatmap_path = plots_dir / "bbox_centers_heatmap.png"
@@ -285,6 +466,19 @@ def generate_dataset_report_pdf(
     _plot_resolution_heatmap(all_resolutions, res_plot_path)
     _plot_bbox_size_hist(all_bbox_area_ratios, bbox_hist_path)
     _plot_bbox_centers_heatmap(all_bbox_centers, bbox_heatmap_path)
+
+    # Segmentation pixel-level plots (only if masks exist)
+    seg_pixel_stats = None
+    mask_heatmap_path = plots_dir / "mask_pixels_heatmap.png"
+    mask_coverage_hist_path = plots_dir / "mask_coverage_hist.png"
+
+    if has_segmentation:
+        seg_pixel_stats = _compute_segmentation_pixel_stats(folder)
+        _plot_mask_pixel_heatmap(seg_pixel_stats["heatmap"], mask_heatmap_path)
+        _plot_mask_coverage_hist(
+            seg_pixel_stats["coverage_per_image"],
+            mask_coverage_hist_path,
+        )
 
     # -----------------------------------------------------------------
     #   ReportLab styles & doc
@@ -451,7 +645,7 @@ def generate_dataset_report_pdf(
     story.append(Spacer(1, 12))
 
     # -----------------------------------------------------------------
-    #   3. Resolution statistics
+    #   3. Image resolution statistics
     # -----------------------------------------------------------------
     story.append(Paragraph("3. Image resolution statistics", h2))
 
@@ -576,42 +770,164 @@ def generate_dataset_report_pdf(
     if has_segmentation and total_annotations > 0:
         story.append(Paragraph("5. Segmentation statistics", h2))
 
-        seg_pct = 100.0 * total_seg_annotations / total_annotations
-        story.append(
-            Paragraph(
-                f"Annotations with segmentation: "
-                f"<b>{total_seg_annotations}</b> "
-                f"({seg_pct:.2f}% of all annotations)",
-                normal,
-            )
-        )
+        
+        # 5.2 Pixel coverage (mask coverage)
+        if seg_pixel_stats is not None and seg_pixel_stats["total_image_pixels"] > 0:
+            total_img_px = seg_pixel_stats["total_image_pixels"]
+            total_lbl_px = seg_pixel_stats["total_labeled_pixels"]
+            cov_global = total_lbl_px / float(total_img_px)
 
-        # Split-wise segmentation ratio
-        rows = [["Split", "Segmented annotations", "Segmentation %"]]
-        for split_name, stats in splits_stats.items():
-            n_ann = stats["num_annotations"]
-            n_seg = stats["num_seg_annotations"]
-            pct = 100.0 * n_seg / n_ann if n_ann > 0 else 0.0
-            rows.append([split_name, str(n_seg), f"{pct:.2f}%"])
+            cov_vals = seg_pixel_stats["coverage_per_image"]
+            if cov_vals:
+                cov_arr = np.array(cov_vals, dtype=float)
+                cov_min = cov_arr.min()
+                cov_max = cov_arr.max()
+                cov_mean = cov_arr.mean()
+                cov_med = float(np.median(cov_arr))
+            else:
+                cov_min = cov_max = cov_mean = cov_med = 0.0
 
-        t_seg = Table(rows, hAlign="LEFT")
-        t_seg.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                    ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 9),
-                ]
+            story.append(
+                Paragraph(
+                    "Global pixel coverage (union of all masks): "
+                    f"<b>{100.0 * cov_global:.2f}%</b> of all image pixels.",
+                    normal,
+                )
             )
-        )
-        story.append(Spacer(1, 6))
-        story.append(t_seg)
-        story.append(Spacer(1, 12))
+            story.append(
+                Paragraph(
+                    "Per-image mask coverage (labeled pixels / image pixels): "
+                    f"min=<b>{100.0 * cov_min:.2f}%</b>, "
+                    f"max=<b>{100.0 * cov_max:.2f}%</b>, "
+                    f"mean=<b>{100.0 * cov_mean:.2f}%</b>, "
+                    f"median=<b>{100.0 * cov_med:.2f}%</b>.",
+                    small,
+                )
+            )
+            story.append(Spacer(1, 6))
+
+            if mask_coverage_hist_path.exists():
+                story.append(Paragraph("5.2.1 Coverage histogram", h3))
+                story.append(Spacer(1, 4))
+                story.append(RLImage(str(mask_coverage_hist_path), width=360, height=270))
+                story.append(Spacer(1, 8))
+
+        # 5.3 Mask size distribution (instance size by mask)
+        if all_mask_area_rel:
+            arr = np.clip(np.array(all_mask_area_rel, dtype=float), 0.0, 1.0)
+            m_min = arr.min()
+            m_max = arr.max()
+            m_mean = arr.mean()
+            m_med = float(np.median(arr))
+            small_frac = 100.0 * np.mean(arr < 0.001)  # <0.1% img
+            large_frac = 100.0 * np.mean(arr > 0.5)    # >50% img
+
+            story.append(Paragraph("5.3 Mask instance size (relative area)", h3))
+            story.append(
+                Paragraph(
+                    "Mask area / image area: "
+                    f"min=<b>{100.0 * m_min:.4f}%</b>, "
+                    f"max=<b>{100.0 * m_max:.4f}%</b>, "
+                    f"mean=<b>{100.0 * m_mean:.4f}%</b>, "
+                    f"median=<b>{100.0 * m_med:.4f}%</b>.",
+                    normal,
+                )
+            )
+            story.append(
+                Paragraph(
+                    f"Masks &lt;0.1% of image area: <b>{small_frac:.2f}%</b> of instances.",
+                    small,
+                )
+            )
+            story.append(
+                Paragraph(
+                    f"Masks &gt;50% of image area: <b>{large_frac:.2f}%</b> of instances.",
+                    small,
+                )
+            )
+            story.append(Spacer(1, 8))
+
+        # 5.4 Polygon complexity + mask/bbox tightness
+        if all_mask_vertices:
+            v_arr = np.array(all_mask_vertices, dtype=float)
+            v_min = v_arr.min()
+            v_max = v_arr.max()
+            v_mean = v_arr.mean()
+            v_med = float(np.median(v_arr))
+
+            story.append(Paragraph("5.4 Mask polygon complexity", h3))
+            story.append(
+                Paragraph(
+                    "Vertices per mask polygon: "
+                    f"min=<b>{v_min:.0f}</b>, "
+                    f"max=<b>{v_max:.0f}</b>, "
+                    f"mean=<b>{v_mean:.2f}</b>, "
+                    f"median=<b>{v_med:.0f}</b>.",
+                    normal,
+                )
+            )
+            story.append(Spacer(1, 4))
+
+        if all_mask_bbox_ratio:
+            r_arr = np.array(all_mask_bbox_ratio, dtype=float)
+            r_min = r_arr.min()
+            r_max = r_arr.max()
+            r_mean = r_arr.mean()
+            r_med = float(np.median(r_arr))
+
+            story.append(Paragraph("5.5 Mask / bbox area ratio (tightness)", h3))
+            story.append(
+                Paragraph(
+                    "mask_area / bbox_area: "
+                    f"min=<b>{r_min:.4f}</b>, "
+                    f"max=<b>{r_max:.4f}</b>, "
+                    f"mean=<b>{r_mean:.4f}</b>, "
+                    f"median=<b>{r_med:.4f}</b>.",
+                    normal,
+                )
+            )
+            story.append(Spacer(1, 8))
+
+        # 5.6 Overlaps and occlusions
+        if seg_pixel_stats is not None and seg_pixel_stats["total_labeled_pixels"] > 0:
+            ov_px = seg_pixel_stats["overlap_pixels"]
+            lbl_px = seg_pixel_stats["total_labeled_pixels"]
+            ov_ratio = ov_px / float(lbl_px)
+
+            img_with_masks = seg_pixel_stats["images_with_masks"]
+            img_with_ov = seg_pixel_stats["images_with_overlap"]
+            img_ov_pct = (
+                100.0 * img_with_ov / img_with_masks if img_with_masks > 0 else 0.0
+            )
+
+            story.append(Paragraph("5.6 Overlaps and occlusions", h3))
+            story.append(
+                Paragraph(
+                    "Pixels belonging to &ge;2 masks: "
+                    f"<b>{ov_px}</b> "
+                    f"({100.0 * ov_ratio:.2f}% of labeled pixels).",
+                    normal,
+                )
+            )
+            story.append(
+                Paragraph(
+                    "Images with at least one overlapping region: "
+                    f"<b>{img_with_ov}</b> / <b>{img_with_masks}</b> "
+                    f"({img_ov_pct:.2f}%).",
+                    small,
+                )
+            )
+            story.append(Spacer(1, 8))
+
+        # 5.7 Spatial distribution of labeled pixels
+        if mask_heatmap_path.exists():
+            story.append(Paragraph("5.7 Spatial distribution of labeled pixels", h3))
+            story.append(Spacer(1, 4))
+            story.append(RLImage(str(mask_heatmap_path), width=360, height=270))
+            story.append(Spacer(1, 12))
 
     # -----------------------------------------------------------------
-    #   6. Split-wise annotation stats
+    #   6. Split-wise annotation statistics
     # -----------------------------------------------------------------
     story.append(Paragraph("6. Split-wise annotation statistics", h2))
 
