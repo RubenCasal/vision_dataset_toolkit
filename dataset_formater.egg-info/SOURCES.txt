@@ -14,6 +14,7 @@ dataset_formater/scripts/get_subset_dataset.py
 dataset_formater/scripts/match_preview_folder.py
 dataset_formater/scripts/preview_dataset.py
 dataset_formater/scripts/remap_dataset_labels.py
+dataset_formater/scripts/segmentation2detection.py
 dataset_formater/scripts/transform2segmentation.py
 dataset_formater/scripts/transform_dataset.py
 dataset_formater/utilities/__init__.py
@@ -26,4 +27,5 @@ dataset_formater/utilities/load_functions.py
 dataset_formater/utilities/match_preview.py
 dataset_formater/utilities/report_dataset.py
 dataset_formater/utilities/sam_segmentation.py
+dataset_formater/utilities/seg_to_bbox.py
 dataset_formater/utilities/subset_dataset.py
