@@ -16,7 +16,7 @@ DEST_PATH: str = ""  # if empty -> "<dataset_root>_sam"
 DEST_FORMAT: str = ""  # if empty -> same as DATASET_FORMAT
 
 # SAM (segment_anything) config
-SAM_CHECKPOINT: str = "dataset_formater/sam_checkpoints/sam_vit_l_0b3195.pth"
+SAM_CHECKPOINT: str = "dataset_formater/sam_checkpoints/sam_large.pth"
 SAM_MODEL_TYPE: str = "vit_l"  # "vit_h" | "vit_l" | "vit_b"
 SAM_DEVICE: str = "cuda"  # "cuda" or "cpu"
 

@@ -1,6 +1,10 @@
 Pillow
 numpy
 matplotlib
+requests
 reportlab
 tqdm
 opencv-python
+torch
+torchvision
+segment-anything@ git+https://github.com/facebookresearch/segment-anything.git

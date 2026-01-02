@@ -10,10 +10,15 @@ dependencies = [
     "Pillow",
     "numpy",
     "matplotlib",
-    "reportlab",     # <--- Esta es la que te falta ahora
-    "tqdm",          # Probablemente la uses para barras de progreso
-    "opencv-python", # Si haces algo con imágenes es muy probable que la uses
+    "requests",
+    "reportlab",
+    "tqdm",
+    "opencv-python",
+    "torch",
+    "torchvision",  
+    "segment-anything @ git+https://github.com/facebookresearch/segment-anything.git",
 ]
+
 
 [project.scripts]
 # Esto crea un comando directo en la terminal
@@ -23,4 +28,5 @@ match_preview_folder = "dataset_formater.scripts.match_preview_folder:main"
 get_dataset_report = "dataset_formater.scripts.get_dataset_report:main"
 transform_dataset = "dataset_formater.scripts.transform_dataset:main"
 remap_dataset_labels = "dataset_formater.scripts.remap_dataset_labels:main"
-tranform2segmentation = "dataset_formater.scripts.tranform2segmentation:main"
+transform2segmentation = "dataset_formater.scripts.transform2segmentation:main"
+download_sam = "dataset_formater.scripts.download_sam:main"

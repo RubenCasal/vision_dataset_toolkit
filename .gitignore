@@ -5,3 +5,4 @@ dataset_coco/*
 dataset_coco/*
 data_coco_prueba/*
 dataset_yolo11/*
+dataset_formater/sam_checkpoints/*

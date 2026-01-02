@@ -1,6 +1,9 @@
 [console_scripts]
+download_sam = dataset_formater.scripts.download_sam:main
 get_dataset_report = dataset_formater.scripts.get_dataset_report:main
 get_subset_dataset = dataset_formater.scripts.get_subset_dataset:main
 match_preview_folder = dataset_formater.scripts.match_preview_folder:main
 preview_dataset = dataset_formater.scripts.preview_dataset:main
+remap_dataset_labels = dataset_formater.scripts.remap_dataset_labels:main
+transform2segmentation = dataset_formater.scripts.transform2segmentation:main
 transform_dataset = dataset_formater.scripts.transform_dataset:main

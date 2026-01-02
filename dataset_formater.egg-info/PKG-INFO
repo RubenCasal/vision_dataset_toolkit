@@ -5,6 +5,10 @@ Summary: Una herramienta profesional para formateo de datasets
 Requires-Dist: Pillow
 Requires-Dist: numpy
 Requires-Dist: matplotlib
+Requires-Dist: requests
 Requires-Dist: reportlab
 Requires-Dist: tqdm
 Requires-Dist: opencv-python
+Requires-Dist: torch
+Requires-Dist: torchvision
+Requires-Dist: segment-anything@ git+https://github.com/facebookresearch/segment-anything.git
