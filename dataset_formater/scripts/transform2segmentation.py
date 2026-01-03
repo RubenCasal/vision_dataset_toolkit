@@ -20,10 +20,7 @@ SAM_CHECKPOINT: str = "dataset_formater/sam_checkpoints/sam_large.pth"
 SAM_MODEL_TYPE: str = "vit_l"  # "vit_h" | "vit_l" | "vit_b"
 SAM_DEVICE: str = "cuda"  # "cuda" or "cpu"
 
-SCORE_THRESHOLD: float = 0.0
-BOX_EXPANSION_RATIO: float = 0.0
-OVERWRITE_EXISTING: bool = False
-RECOMPUTE_BBOX: bool = True
+SCORE_THRESHOLD: float = 0.0  # único “knob” que dejamos
 
 
 def run_sam_conversion(
@@ -32,13 +29,18 @@ def run_sam_conversion(
     dest_path: str,
     dest_format: str,
     sam_checkpoint: str,
-    sam_model_type: str = "vit_h",
+    sam_model_type: str = "vit_l",
     sam_device: str = "cuda",
     score_threshold: float = 0.0,
-    box_expansion_ratio: float = 0.0,
-    overwrite_existing: bool = False,
-    recompute_bbox: bool = True,
 ) -> None:
+    """
+    Convert detection dataset (boxes) into instance segmentation using SAM.
+
+    Simplified behaviour:
+      - No bbox expansion.
+      - Existing segmentations are never overwritten.
+      - Bboxes are always recomputed from the predicted mask.
+    """
     print(f"[SAM] Init dataset SAM conversion for {dataset_format} at {dataset_path}")
     root = Path(dataset_path)
 
@@ -58,9 +60,6 @@ def run_sam_conversion(
             model_type=sam_model_type,
             device=sam_device,
             score_threshold=score_threshold,
-            box_expansion_ratio=box_expansion_ratio,
-            overwrite_existing=overwrite_existing,
-            recompute_bbox_from_mask=recompute_bbox,
             verbose=True,
         )
 
@@ -80,9 +79,6 @@ def run_sam_conversion(
                 model_type=sam_model_type,
                 device=sam_device,
                 score_threshold=score_threshold,
-                box_expansion_ratio=box_expansion_ratio,
-                overwrite_existing=overwrite_existing,
-                recompute_bbox_from_mask=recompute_bbox,
                 verbose=True,
             )
 
@@ -100,9 +96,6 @@ def run_sam_conversion(
             model_type=sam_model_type,
             device=sam_device,
             score_threshold=score_threshold,
-            box_expansion_ratio=box_expansion_ratio,
-            overwrite_existing=overwrite_existing,
-            recompute_bbox_from_mask=recompute_bbox,
             verbose=True,
         )
 
@@ -114,11 +107,12 @@ def run_sam_conversion(
     dumper(ds_folder, str(dest_root))
     print("[SAM] Conversion + save completed.")
 
+
 def main():
     parser = argparse.ArgumentParser(
         description=(
             "Convert a detection dataset (YOLO / COCO / COCO JSON) into a "
-            "segmentation dataset using SAM (segment_anything) masks per bounding box."
+            "segmentation dataset using SAM masks per bounding box."
         )
     )
 
@@ -149,12 +143,12 @@ def main():
         help="Format of the output dataset. If empty -> same as dataset_format.",
     )
 
-    # SAM config
+    # SAM config (minimal)
     parser.add_argument(
         "--sam_checkpoint",
         type=str,
         default=SAM_CHECKPOINT,
-        help="Path to SAM .pth checkpoint (e.g. sam_vit_h_4b8939.pth).",
+        help="Path to SAM .pth checkpoint (e.g. dataset_formater/sam_checkpoints/sam_large.pth).",
     )
     parser.add_argument(
         "--sam_model_type",
@@ -170,29 +164,11 @@ def main():
         choices=["cuda", "cpu"],
         help="Device to run SAM.",
     )
-
     parser.add_argument(
         "--score_threshold",
         type=float,
         default=SCORE_THRESHOLD,
         help="Min mask score to accept SAM mask (0.0–1.0).",
-    )
-    parser.add_argument(
-        "--box_expansion_ratio",
-        type=float,
-        default=BOX_EXPANSION_RATIO,
-        help="Relative expansion of each bbox before passing to SAM (e.g. 0.05).",
-    )
-    parser.add_argument(
-        "--overwrite_existing",
-        action="store_true",
-        default=OVERWRITE_EXISTING,
-        help="If set, overwrite annotations that already have segmentation.",
-    )
-    parser.add_argument(
-        "--no_recompute_bbox",
-        action="store_true",
-        help="If set, DO NOT recompute bbox from SAM mask (keep original box).",
     )
 
     args = parser.parse_args()
@@ -231,10 +207,8 @@ def main():
         sam_model_type=args.sam_model_type,
         sam_device=args.sam_device,
         score_threshold=args.score_threshold,
-        box_expansion_ratio=args.box_expansion_ratio,
-        overwrite_existing=args.overwrite_existing,
-        recompute_bbox=not args.no_recompute_bbox,
     )
+
 
 if __name__ == "__main__":
     main()

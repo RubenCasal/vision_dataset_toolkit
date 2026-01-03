@@ -19,26 +19,23 @@ def add_sam_masks_to_dataset(
     dataset: DatasetIR,
     images_root: str | Path,
     sam_checkpoint: str | Path,
-    model_type: str = "vit_h",  # "vit_h" | "vit_l" | "vit_b"
+    model_type: str = "vit_l",  # "vit_h" | "vit_l" | "vit_b"
     device: str = "cuda",
     score_threshold: float = 0.0,
-    box_expansion_ratio: float = 0.0,
-    overwrite_existing: bool = False,
-    recompute_bbox_from_mask: bool = True,
     verbose: bool = True,
 ) -> DatasetIR:
     """
-    Usa Meta SAM (segment_anything) para añadir máscaras de instancia a un DatasetIR
-    de detección (solo bounding boxes).
+    Use Meta SAM (segment_anything) to add instance masks to a detection dataset.
 
-    Para cada anotación:
-      - Usa su bbox como box-prompt de SAM.
-      - Selecciona la mejor máscara de SAM (multimask_output).
-      - Guarda un polígono COCO (flatten) en `ann.segmentation`.
-      - Opcionalmente recalcula `ann.bbox` a partir de la máscara.
-      - Actualiza `ann.area` con el número de píxeles del objeto.
+    Behaviour (no extra knobs):
+      - If an annotation already has `segmentation`, it is skipped.
+      - Each bbox is used as a SAM box prompt.
+      - Best mask (highest score) is selected.
+      - `ann.segmentation` is set to a COCO-style polygon (flattened).
+      - `ann.bbox` is recomputed as the tight bounding box of the mask.
+      - `ann.area` is set to the number of foreground pixels.
 
-    Modifica `dataset` IN-PLACE y también lo devuelve.
+    The function modifies `dataset` in-place and also returns it.
     """
     images_root = Path(images_root)
     sam_checkpoint = Path(sam_checkpoint)
@@ -52,14 +49,14 @@ def add_sam_masks_to_dataset(
     if not sam_checkpoint.exists():
         raise FileNotFoundError(
             f"SAM checkpoint not found at: {sam_checkpoint}\n"
-            "Descárgalo desde el repo oficial de SAM y coloca el .pth en esa ruta."
+            "Download it (e.g. with `download_sam`) and place the .pth there."
         )
 
     sam = sam_model_registry[model_type](checkpoint=str(sam_checkpoint))
     sam.to(device=device)
     predictor = SamPredictor(sam)
 
-    # Índice image_id -> lista de anotaciones
+    # image_id -> list[Annotation]
     anns_by_image: Dict[int, List[Annotation]] = {}
     for ann in dataset.annotations:
         anns_by_image.setdefault(ann.image_id, []).append(ann)
@@ -105,8 +102,8 @@ def add_sam_masks_to_dataset(
         for ann in anns:
             processed_anns += 1
 
-            # Si ya tiene máscara y no queremos sobreescribir, saltamos
-            if (not overwrite_existing) and (ann.segmentation is not None):
+            # Never overwrite existing masks
+            if ann.segmentation is not None:
                 skipped_existing += 1
                 continue
 
@@ -116,16 +113,7 @@ def add_sam_masks_to_dataset(
             x1 = float(b.x + b.width)
             y1 = float(b.y + b.height)
 
-            # Expansión opcional
-            if box_expansion_ratio > 0.0:
-                pad_x = box_expansion_ratio * (x1 - x0)
-                pad_y = box_expansion_ratio * (y1 - y0)
-                x0 -= pad_x
-                y0 -= pad_y
-                x1 += pad_x
-                y1 += pad_y
-
-            # Clip al tamaño de la imagen
+            # Clip to image size
             x0 = max(0.0, min(x0, img_w - 1.0))
             y0 = max(0.0, min(y0, img_h - 1.0))
             x1 = max(0.0, min(x1, img_w - 1.0))
@@ -177,7 +165,7 @@ def add_sam_masks_to_dataset(
             x_min = int(xs.min())
             x_max = int(xs.max())
 
-            # Contornos -> polígono COCO
+            # Contours -> COCO polygon
             contours, _ = cv2.findContours(
                 mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
             )
@@ -200,20 +188,19 @@ def add_sam_masks_to_dataset(
                 failed_masks += 1
                 continue
 
-            # Escribimos máscara y área en la anotación
+            # Write segmentation and area
             ann.segmentation = poly_flat
             ann.area = area
 
-            # Recalcular bbox desde la máscara si se pide
-            if recompute_bbox_from_mask:
-                new_w = float(x_max - x_min + 1)
-                new_h = float(y_max - y_min + 1)
-                ann.bbox = BBox(
-                    x=float(x_min),
-                    y=float(y_min),
-                    width=new_w,
-                    height=new_h,
-                )
+            # Always recompute bbox from the mask
+            new_w = float(x_max - x_min + 1)
+            new_h = float(y_max - y_min + 1)
+            ann.bbox = BBox(
+                x=float(x_min),
+                y=float(y_min),
+                width=new_w,
+                height=new_h,
+            )
 
             with_masks += 1
 
