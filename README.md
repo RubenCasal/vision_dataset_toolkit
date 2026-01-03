@@ -2,22 +2,38 @@
 
 ## Overview
 
-`visionDS_toolkit` is designed to help you:
+`visionDS_toolkit` is a lightweight toolkit for **loading, inspecting and transforming vision datasets**.
 
-- Load datasets in YOLO, COCO, or COCO-JSON format into a common `DatasetIR` interface.
-- Manipulate images, annotations and categories programmatically (remap classes, subset, filter, etc.).
-- Export back to standard formats so the processed dataset is ready for training.
-- Generate automatic dataset reports (PDF) with statistics and plots.
-- Convert bounding-box-only datasets into instance segmentation datasets using Segment Anything (SAM).
+It allows you to:
 
-The goal is to centralize typical dataset housekeeping tasks in a single, consistent toolkit.
+- Load datasets in **YOLO**, **COCO**, or **COCO-JSON** into a common `DatasetIR` interface.
+- Manipulate images, annotations and categories programmatically (remap classes, subset, filter…).
+- Convert **between formats** while preserving the `train` / `val` / `test` split structure.
+- Generate **PDF dataset reports** with statistics and plots (resolution, boxes, segmentation, etc.).
+- Create **visual previews** of annotations to support manual, image-by-image curation.
+- Prune datasets based on these previews for **manual visual cleaning**.
+- Convert **bounding-box-only datasets → instance segmentation** using **Segment Anything (SAM)**.
+- Convert **segmentation datasets → pure detection** by dropping masks and keeping only boxes.
+- Download SAM checkpoints programmatically into a standard folder layout.
+
+The goal is to provide a practical toolkit to **speed up dataset analysis and modification workflows** for computer vision experiments.
 
 ---
 
 ## Installation
 
-(To be completed: pip install / editable install instructions.)
+#### 1. Create conda environment (Python 3.10)
 
+```
+conda create -n visionDS_toolkit_env python=3.10
+conda activate visionDS_toolkit_env
+```
+#### 2. Clone repository and install
+```
+git clone https://github.com/RubenCasal/vision_dataset_toolkit.git
+cd vision_dataset_toolkit
+pip install -e .
+```
 ---
 
 ## Scripts
@@ -76,7 +92,8 @@ Generate visual previews of dataset annotations (YOLO / COCO / COCO JSON) by dra
 
 **Description**  
 
-Prune a dataset by matching it to a preview folder: only images that remain in the preview are preserved in the final dataset, after an interactive confirmation (`yes` is required before deletion).
+Prune a dataset by matching it to a preview folder: only images that are still present in the preview are preserved in the final dataset.
+This script is meant to be used after a manual visual review of the preview images (you delete bad / ambiguous samples in the preview, and then match_preview_folder propagates those deletions back to the dataset). An interactive confirmation (yes) is required before applying the pruning.
 
 **Arguments**
 
@@ -155,6 +172,24 @@ Remap, merge or drop classes in a dataset (YOLO / COCO / COCO JSON) according to
 - `--dest_format` (optional): Output format: `yolo`, `coco`, `coco_json` or empty string (`""` = same as source).
 
 Note: The class mapping `ID_MAP` (old_id -> new_id or `None` to drop) is edited directly in the script.
+
+#### Class remapping (ID_MAP)
+The remapping dictionary is edited directly in
+visionDS_toolkit/scripts/remap_labels_dataset.py.
+It maps **old category IDs → new category IDs**, or None if a class must be removed.
+
+**Example**
+```
+ID_MAP: Dict[int, Optional[int]] = {
+    0: 0,    # car    -> vehicle (new class 0)
+    1: 0,    # truck  -> vehicle (merged into class 0)
+    2: 1,    # person -> person (new class 1)
+    3: None, # tree   -> removed from the dataset
+}
+```
+- All annotations with category_id == 0 or 1 will become category_id == 0 (“vehicle”).
+- All annotations with category_id == 2 will become category_id == 1 (“person”).
+- All annotations with category_id == 3 will be dropped.
 
 **Example**
 ```
