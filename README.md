@@ -117,6 +117,42 @@ This script is meant to be used after a manual visual review of the preview imag
 **Description**  
 
 Generate a PDF report with global statistics for a dataset (YOLO / COCO / COCO JSON), including per-split stats, category distribution and resolution/bbox plots.
+The report contains:
+
+- **Overview**
+  - Total images, total annotations, number of categories.
+  - Presence/absence of segmentation masks.
+- **Per-split stats**
+  - Table with images, annotations and mean boxes/image for each split (`train`, `val`, `test`).
+- **Category distribution**
+  - Table with category ID, name, number of boxes, number of images, and percentages (boxes % and images %).
+- **Image resolution**
+  - Min / max / mean resolution across the dataset.
+  - 2D resolution histogram plot.
+- **Bounding box statistics**
+  - Boxes per image (min / max / mean) and percentage of images with 0 boxes.
+  - Relative bbox area (box_area / image_area): min / max / mean, small/large box percentages.
+  - Histogram of bbox relative area.
+  - Heatmap of bbox centers in normalized coordinates.
+
+If the dataset includes **segmentation masks**, the report adds:
+
+- **Mask coverage (pixel-level)**
+  - Global pixel coverage (union of all masks) over all images.
+  - Per-image coverage (labeled pixels / image pixels): min / max / mean / median.
+  - Histogram of per-image mask coverage.
+- **Instance-level mask stats**
+  - Relative mask area (mask_area / image_area): min / max / mean / median, % of very small / very large instances.
+  - Polygon complexity: vertices per mask (min / max / mean / median).
+  - Mask–bbox tightness: mask_area / bbox_area statistics.
+- **Overlaps and occlusions**
+  - Percentage of labeled pixels that belong to ≥ 2 masks.
+  - Number and percentage of images with overlapping regions between masks.
+- **Spatial distribution of labeled pixels**
+  - Heatmap of labeled pixel density in normalized image coordinates.
+
+- **Split-wise annotation statistics**
+  - For each split, images, annotations and boxes per image (min / max / mean).
 
 **Arguments**
 
