@@ -21,7 +21,7 @@ dependencies = [
 
 
 [project.scripts]
-get_subset_dataset = "visionDS_toolkit.scripts.get_subset_dataset"
+get_subset_dataset = "visionDS_toolkit.scripts.get_subset_dataset:main"
 preview_dataset = "visionDS_toolkit.scripts.preview_dataset:main"
 match_preview_folder = "visionDS_toolkit.scripts.match_preview_folder:main"
 get_dataset_report = "visionDS_toolkit.scripts.get_dataset_report:main"

@@ -1,0 +1,10 @@
+[console_scripts]
+download_sam = visionDS_toolkit.scripts.download_sam:main
+get_dataset_report = visionDS_toolkit.scripts.get_dataset_report:main
+get_subset_dataset = visionDS_toolkit.scripts.get_subset_dataset
+match_preview_folder = visionDS_toolkit.scripts.match_preview_folder:main
+preview_dataset = visionDS_toolkit.scripts.preview_dataset:main
+remap_dataset_labels = visionDS_toolkit.scripts.remap_dataset_labels:main
+segmentation2detection = visionDS_toolkit.scripts.segmentation2detection:main
+transform2segmentation = visionDS_toolkit.scripts.transform2segmentation:main
+transform_dataset = visionDS_toolkit.scripts.transform_dataset:main

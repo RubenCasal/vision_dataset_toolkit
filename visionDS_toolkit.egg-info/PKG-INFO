@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: visionDS_toolkit
+Version: 0.1.0
+Summary: A toolkit for inspecting, transforming, and standardizing computer vision datasets (YOLO / COCO / COCO-JSON) for training and analysis.
+Requires-Dist: Pillow
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Requires-Dist: requests
+Requires-Dist: reportlab
+Requires-Dist: tqdm
+Requires-Dist: opencv-python
+Requires-Dist: torch
+Requires-Dist: torchvision
+Requires-Dist: segment-anything@ git+https://github.com/facebookresearch/segment-anything.git
