@@ -44,7 +44,7 @@ conda activate visionDS_toolkit_env
 ```
 #### 2. Clone repository and install
 ```
-git clone https://github.com/RubenCasal/vision_dataset_toolkit.git
+git clone git@bitbucket.org:fadacatec-ondemand/visual_dataset_toolkit.git
 cd vision_dataset_toolkit
 pip install -e .
 ```
