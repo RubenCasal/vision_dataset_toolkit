@@ -24,7 +24,7 @@ def get_loader(dataset_type: str):
 
 class DatasetFolder:
 
-    def __init__(self, path: str, dataset_type: str) -> None:
+    def __init__(self, path: str, dataset_type: str, max_images: Optional[int] = None) -> None:
         base = Path(path)
         loader = get_loader(dataset_type=dataset_type)
 
@@ -41,7 +41,8 @@ class DatasetFolder:
         train_dir = base / "train"
         if train_dir.exists():
             try:
-                ds = loader(str(train_dir))
+                # pass through max_images to loaders that support it
+                ds = loader(str(train_dir), max_images=max_images)
                 self.train = ds
                 self.split_dirs["train"] = train_dir
                 print(f"Loaded train dataset from {train_dir}")
@@ -56,7 +57,7 @@ class DatasetFolder:
         test_dir = base / "test"
         if test_dir.exists():
             try:
-                ds = loader(str(test_dir))
+                ds = loader(str(test_dir), max_images=max_images)
                 self.test = ds
                 self.split_dirs["test"] = test_dir
                 print(f"Loaded test dataset from {test_dir}")
@@ -83,7 +84,7 @@ class DatasetFolder:
 
         if valid_dir is not None and valid_key is not None:
             try:
-                ds = loader(str(valid_dir))
+                ds = loader(str(valid_dir), max_images=max_images)
                 self.valid = ds
                 self.split_dirs[valid_key] = valid_dir
                 print(f"Loaded valid dataset from {valid_dir}")

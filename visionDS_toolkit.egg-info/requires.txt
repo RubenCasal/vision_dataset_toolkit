@@ -7,4 +7,8 @@ tqdm
 opencv-python
 torch
 torchvision
-segment-anything@ git+https://github.com/facebookresearch/segment-anything.git
+segment-anything @ git+https://github.com/facebookresearch/segment-anything.git
+huggingface_hub
+einops
+pycocotools
+sam3 @ git+https://github.com/facebookresearch/sam3.git

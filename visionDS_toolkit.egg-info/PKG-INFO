@@ -11,4 +11,8 @@ Requires-Dist: tqdm
 Requires-Dist: opencv-python
 Requires-Dist: torch
 Requires-Dist: torchvision
-Requires-Dist: segment-anything@ git+https://github.com/facebookresearch/segment-anything.git
+Requires-Dist: segment-anything @ git+https://github.com/facebookresearch/segment-anything.git
+Requires-Dist: huggingface_hub
+Requires-Dist: einops
+Requires-Dist: pycocotools
+Requires-Dist: sam3 @ git+https://github.com/facebookresearch/sam3.git
