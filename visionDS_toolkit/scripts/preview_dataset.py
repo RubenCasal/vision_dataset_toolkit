@@ -24,7 +24,7 @@ def run_visualization(
 ) -> None:
     print(f"Init visualization for dataset {dataset_format} at {dataset_path}")
 
-    ds_folder = DatasetFolder(path=dataset_path, dataset_type=dataset_format)
+    ds_folder = DatasetFolder(path=dataset_path, dataset_type=dataset_format, max_images=max_images)
 
     # train
     if ds_folder.train is not None and "train" in ds_folder.split_dirs:

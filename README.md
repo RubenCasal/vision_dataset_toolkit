@@ -15,6 +15,7 @@ It allows you to:
 - Convert **bounding-box-only datasets → instance segmentation** using **Segment Anything (SAM)**.
 - Convert **segmentation datasets → pure detection** by dropping masks and keeping only boxes.
 - Download SAM checkpoints programmatically into a standard folder layout.
+- Generate **semantic segmentation datasets** from raw image folders using **SAM3 prompt-driven segmentation**.
 
 The goal is to provide a practical toolkit to **speed up dataset analysis and modification workflows** for computer vision experiments.
 
@@ -32,6 +33,8 @@ The goal is to provide a practical toolkit to **speed up dataset analysis and mo
   - [segmentation2detection.py](#segmentation2detectionpy)
   - [download_sam_checkpoint.py](#download_sam_checkpointpy)
   - [transform2segmentation.py](#transform2segmentationpy)
+  - [create_semantic_dataset.py](#create_semantic_datasetpy)
+  - [download_sam3.py](#download_sam3py)
 
 ---
 ## Installation
@@ -44,7 +47,7 @@ conda activate visionDS_toolkit_env
 ```
 #### 2. Clone repository and install
 ```
-git clone https://github.com/RubenCasal/vision_dataset_toolkit.git
+git clone git@bitbucket.org:fadacatec-ondemand/visual_dataset_toolkit.git
 cd vision_dataset_toolkit
 pip install -e .
 ```
@@ -322,3 +325,106 @@ Convert a detection dataset with bounding boxes (YOLO / COCO / COCO JSON) into a
     --sam_model_type vit_l 
   
 ```
+
+---
+
+### `create_semantic_dataset.py`
+
+**Description**
+
+Convert a plain folder of images into a semantic segmentation dataset using SAM3 prompt-driven segmentation. For each image the script generates:
+
+- A single-channel `uint8` ID mask (`labels/`)
+- An RGB colorized visualization mask (`labels_color/`)
+- An overlay preview of the original image blended with the color mask (`preview/`)
+- A copy of the original image (`images/`)
+
+The prompt-to-class mapping, color palette and per-prompt confidence are defined directly in the script (same style as `remap_dataset_labels.py`). Prompts are processed in declaration order; each prompt only fills pixels that are still unassigned (background). Unmatched pixels keep class ID `0`.
+
+**Default prompt-to-class mapping**
+```python
+PROMPT_TO_SEMANTIC_ID = {
+    "building":   1,
+    "vegetation": 2,
+    "tree":       2,
+    "road":       3,
+    "pavement":   3,
+}
+```
+
+**Default color palette**
+```python
+SEMANTIC_ID_TO_COLOR = {
+    0: (243,  69, 141),   # background
+    1: ( 35, 198, 233),   # building
+    2: ( 93, 220,  11),   # vegetation / tree
+    3: (227, 192,  29),   # road / pavement
+}
+```
+
+**Per-prompt confidence (PROMPT_TO_CONFIDENCE)**
+
+Each prompt can have its own detection confidence threshold. Prompts not listed here fall back to `--confidence_threshold`. Edit directly in the script:
+
+```python
+PROMPT_TO_CONFIDENCE: Dict[str, float] = {
+    "building":   0.7,   # strict — buildings must be clearly visible
+    "vegetation": 0.3,   # loose  — catch partial vegetation
+    "tree":       0.4,
+    "road":       0.6,
+    "pavement":   0.6,
+}
+```
+
+Set `PROMPT_TO_CONFIDENCE = {}` to use the global `--confidence_threshold` for all prompts.
+
+**Output structure**
+```
+<dest_path>/
+  images/           (copies of original files, original filenames)
+  labels/           (single-channel PNG masks, same stem as source image)
+  labels_color/     (RGB PNG visualization masks, same stem as source image)
+  preview/          (original image blended with color mask at 50% opacity)
+```
+
+**Arguments**
+
+- `--source_path` (required): Path to the folder of source images.
+- `--dest_path` (required): Path to save the output dataset.
+- `--sam3_checkpoint` (required): Path to the SAM3 `.pt` checkpoint file.
+- `--sam3_model_type` (optional): Model release: `sam3` or `sam3.1` (default: `sam3`).
+- `--device` (optional): `cuda` or `cpu` (default: `cuda`).
+- `--mask_threshold` (optional): Minimum SAM3 stability score to accept a mask in `[0.0, 1.0]` (default: `0.0`).
+- `--confidence_threshold` (optional): Global SAM3 detection confidence threshold in `[0.0, 1.0]` (default: `0.5`). Used for prompts not listed in `PROMPT_TO_CONFIDENCE`.
+- `--overwrite` (optional): Allow writing into an existing destination directory.
+
+**Example**
+```
+create_semantic_dataset \
+  --source_path /data/raw_images \
+  --dest_path /data/semantic_dataset \
+  --sam3_checkpoint visionDS_toolkit_models/sam3/sam3.pt \
+  --device cuda \
+  --confidence_threshold 0.5
+```
+
+---
+
+### `download_sam3.py`
+
+**Description**
+
+Download a SAM3 checkpoint from HuggingFace into `visionDS_toolkit_models/sam3/` (or a custom folder). Skips download if the file already exists.
+
+SAM3 weights are gated — you must accept the license at [https://huggingface.co/facebook/sam3](https://huggingface.co/facebook/sam3) and run `huggingface-cli login` before downloading.
+
+**Arguments**
+
+- `--model-type` (optional): Release to download: `sam3` or `sam3.1` (default: `sam3`).
+- `--output-dir` (optional): Custom output directory; if empty, uses `<repo_root>/visionDS_toolkit_models/sam3/`.
+
+**Example**
+```
+download_sam3 --model-type sam3
+```
+

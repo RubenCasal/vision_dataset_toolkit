@@ -1,5 +1,7 @@
 [console_scripts]
+create_semantic_dataset = visionDS_toolkit.scripts.create_semantic_dataset:main
 download_sam = visionDS_toolkit.scripts.download_sam:main
+download_sam3 = visionDS_toolkit.scripts.download_sam3:main
 get_dataset_report = visionDS_toolkit.scripts.get_dataset_report:main
 get_subset_dataset = visionDS_toolkit.scripts.get_subset_dataset:main
 match_preview_folder = visionDS_toolkit.scripts.match_preview_folder:main

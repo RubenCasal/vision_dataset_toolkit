@@ -11,7 +11,7 @@ from PIL import Image as PILImage
 import json
 
 
-def load_yolo_dataset(root: str) -> DatasetIR:
+def load_yolo_dataset(root: str, max_images: int | None = None) -> DatasetIR:
     root_path = Path(root)
     images_dir = root_path / "images"
     labels_dir = root_path / "labels"
@@ -22,6 +22,7 @@ def load_yolo_dataset(root: str) -> DatasetIR:
 
     img_id = 1
     ann_id = 1
+    processed = 0
 
     for img_path in sorted(images_dir.glob("*.*")):
         with PILImage.open(img_path) as im:
@@ -135,6 +136,9 @@ def load_yolo_dataset(root: str) -> DatasetIR:
                     continue
 
         img_id += 1
+        processed += 1
+        if max_images is not None and processed >= max_images:
+            break
 
     return DatasetIR(
         images=images,
@@ -142,7 +146,7 @@ def load_yolo_dataset(root: str) -> DatasetIR:
         categories=list(categories_map.values()),
     )
 
-def load_coco_estandar_dataset(split_root: str) -> DatasetIR:
+def load_coco_estandar_dataset(split_root: str, max_images: int | None = None) -> DatasetIR:
 
     split_dir = Path(split_root)
     if not split_dir.exists():
@@ -177,6 +181,10 @@ def load_coco_estandar_dataset(split_root: str) -> DatasetIR:
 
     data = json.loads(ann_path.read_text(encoding="utf-8"))
 
+    images_data = data["images"]
+    if max_images is not None:
+        images_data = images_data[:max_images]
+
     images: List[Image] = [
         Image(
             id=int(im["id"]),
@@ -184,7 +192,7 @@ def load_coco_estandar_dataset(split_root: str) -> DatasetIR:
             width=int(im["width"]),
             height=int(im["height"]),
         )
-        for im in data["images"]
+        for im in images_data
     ]
 
     categories: List[Category] = [
@@ -197,7 +205,11 @@ def load_coco_estandar_dataset(split_root: str) -> DatasetIR:
     ]
 
     annotations: List[Annotation] = []
+    # if images were limited, filter annotations to those images
+    kept_image_ids = {im.id for im in images}
     for a in data["annotations"]:
+        if kept_image_ids and int(a["image_id"]) not in kept_image_ids:
+            continue
         x, y, w, h = a["bbox"]
         area = a.get("area", w * h)
 
@@ -230,7 +242,7 @@ def load_coco_estandar_dataset(split_root: str) -> DatasetIR:
     )
 
 
-def load_coco_json_dataset(split_root: str) -> DatasetIR:
+def load_coco_json_dataset(split_root: str, max_images: int | None = None) -> DatasetIR:
 
     split_dir = Path(split_root)
     if not split_dir.exists():
@@ -258,6 +270,10 @@ def load_coco_json_dataset(split_root: str) -> DatasetIR:
 
     data = json.loads(ann_path.read_text(encoding="utf-8"))
 
+    images_data = data["images"]
+    if max_images is not None:
+        images_data = images_data[:max_images]
+
     images: List[Image] = [
         Image(
             id=int(im["id"]),
@@ -265,7 +281,7 @@ def load_coco_json_dataset(split_root: str) -> DatasetIR:
             width=int(im["width"]),
             height=int(im["height"]),
         )
-        for im in data["images"]
+        for im in images_data
     ]
 
     categories: List[Category] = [
@@ -278,7 +294,10 @@ def load_coco_json_dataset(split_root: str) -> DatasetIR:
     ]
 
     annotations: List[Annotation] = []
+    kept_image_ids = {im.id for im in images}
     for a in data["annotations"]:
+        if kept_image_ids and int(a["image_id"]) not in kept_image_ids:
+            continue
         x, y, w, h = a["bbox"]
         area = a.get("area", w * h)
 

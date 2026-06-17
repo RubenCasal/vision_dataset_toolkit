@@ -13,7 +13,6 @@ from visionDS_toolkit.utilities.dump_functions import (
 )
 from visionDS_toolkit.utilities.change_labels import remap_dataset_labels
 
-
 # =========================
 # DEFAULT CONSTANTS
 # =========================
@@ -24,11 +23,9 @@ DEST_FORMAT: str = ""  # if "", defaults to SOURCE_FORMAT
 
 # Class remapping plan: old_id -> new_id (or None to drop)
 ID_MAP: Dict[int, Optional[int]] = {
-    # 0: 1,  # car     -> vehicle
-    # 1: 1,  # truck   -> vehicle
-    # 2: 0,    # person  -> person (now id 0)
-    # 3: 2,    # boat    -> boat
-    # 4: None, # tree    -> removed
+    0: 0,  # person
+    1: 1,  # vehicle
+    2: None,  # boat -> drop
 }
 
 
@@ -38,7 +35,7 @@ def run_remap_labels(
     dest_path: str,
     dest_format: Optional[str] = None,
 ) -> None:
-    
+
     if not ID_MAP:
         raise ValueError(
             "ID_MAP is empty. Define the class remapping in the script before running."
@@ -87,6 +84,7 @@ def run_remap_labels(
     dumper(ds_folder, dest_path)
 
     print(f"[DONE] Remapped dataset saved in: {Path(dest_path).resolve()}")
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -151,6 +149,7 @@ def main():
         dest_path=dest_path,
         dest_format=dest_format,
     )
+
 
 if __name__ == "__main__":
     main()

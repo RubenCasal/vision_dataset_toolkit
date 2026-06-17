@@ -8,7 +8,9 @@ visionDS_toolkit.egg-info/entry_points.txt
 visionDS_toolkit.egg-info/requires.txt
 visionDS_toolkit.egg-info/top_level.txt
 visionDS_toolkit/scripts/__init__.py
+visionDS_toolkit/scripts/create_semantic_dataset.py
 visionDS_toolkit/scripts/download_sam.py
+visionDS_toolkit/scripts/download_sam3.py
 visionDS_toolkit/scripts/get_dataset_report.py
 visionDS_toolkit/scripts/get_subset_dataset.py
 visionDS_toolkit/scripts/match_preview_folder.py
@@ -26,6 +28,9 @@ visionDS_toolkit/utilities/dump_functions.py
 visionDS_toolkit/utilities/load_functions.py
 visionDS_toolkit/utilities/match_preview.py
 visionDS_toolkit/utilities/report_dataset.py
+visionDS_toolkit/utilities/sam3_inference.py
 visionDS_toolkit/utilities/sam_segmentation.py
 visionDS_toolkit/utilities/seg_to_bbox.py
+visionDS_toolkit/utilities/semantic_dataset_builder.py
+visionDS_toolkit/utilities/semantic_mask_utils.py
 visionDS_toolkit/utilities/subset_dataset.py
